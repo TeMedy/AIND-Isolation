@@ -7,6 +7,9 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 import random
+from boto.kinesis.exceptions import InvalidArgumentException
+
+infinity = float('inf')
 
 
 class Timeout(Exception):
@@ -35,7 +38,8 @@ def custom_score(game, player):
     """
 
     # TODO: finish this function!
-    raise NotImplementedError
+    #raise NotImplementedError
+    return float(len(game.get_legal_moves(player)))
 
 
 class CustomPlayer:
@@ -120,20 +124,43 @@ class CustomPlayer:
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
+        if len(legal_moves) == 0: 
+            return (-1, -1)
+
+        # initialize next move 
+        move = legal_moves[0]
+        TERMINAL_MOVE = [(-1, -1)]
 
         try:
             # The search method call (alpha beta or minimax) should happen in
             # here in order to avoid timeout. The try/except block will
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
-            pass
+            if self.iterative: 
+                # if iterative deepening is activated, it starts from depth zero
+                # and work it's way toward deeper levels of the decision tree
+                depth = 0
+            else: 
+                # if iterative deepening is not activated, it only does the 
+                # search once for the maximum depth of the tree
+                depth = self.search_depth
+            while depth <= self.search_depth and move not in TERMINAL_MOVE: 
+                print ('at depth: ' + str(depth))
+                if self.method == 'minimax':
+                    _, move = self.minimax(game, depth)
+                #elif self.method == 'alaphbeta': 
+                #    _, move = self.alphabeta(game, depth)
+                else: 
+                    raise InvalidArgumentException
+                # go one level deeper in the search tree  
+                depth += 1 
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
             pass
 
         # Return the best move from the last completed search iteration
-        raise NotImplementedError
+        return move
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -160,11 +187,47 @@ class CustomPlayer:
         tuple(int, int)
             The best move for the current branch; (-1, -1) for no legal moves
         """
+        player = game.active_player
+        
+        def min_value(game, depth):
+            # depth zero means we are at the leaf
+            if depth == 0 or len(game.get_legal_moves()) == 0: 
+                return self.score(game, player)
+            v = infinity
+            for move in game.get_legal_moves(): 
+                v  = min(v, max_value(game.forecast_move(move), depth - 1))
+            return v 
+
+        def max_value(game, depth):
+            # depth zero means we are at the leaf
+            if depth == 0 or len(game.get_legal_moves()) == 0: 
+                return self.score(game, player)
+            v = -infinity
+            for move in game.get_legal_moves(): 
+                v  = max(v, min_value(game.forecast_move(move), depth - 1))
+            return v
+            
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        # return the current score if there is no more level to explore
+        score = self.score(game, player)
+        next_move = (-1, -1)
+        if depth == 0 or len(game.get_legal_moves()) == 0: 
+            return score, next_move
+
+        # Do an iterative deepening with a bounded depth search 
+        if maximizing_player: 
+            score = -infinity
+            for move in game.get_legal_moves():
+                v = min_value(game.forecast_move(move), depth - 1) 
+                if  v > score: 
+                    next_move = move 
+                    score = v  
+        else: 
+            raise NotImplemented
+
+        return score, next_move   
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -201,5 +264,44 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        player = game.active_player
+        
+        def min_value(game, depth):
+            # depth zero means we are at the leaf
+            if depth == 0 or len(game.get_legal_moves()) == 0: 
+                return self.score(game, player)
+            v = infinity
+            for move in game.get_legal_moves(): 
+                v  = min(v, max_value(game.forecast_move(move), depth - 1))
+            return v 
+
+        def max_value(game, depth):
+            # depth zero means we are at the leaf
+            if depth == 0 or len(game.get_legal_moves()) == 0: 
+                return self.score(game, player)
+            v = -infinity
+            for move in game.get_legal_moves(): 
+                v  = max(v, min_value(game.forecast_move(move), depth - 1))
+            return v
+            
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise Timeout()
+
+        # return the current score if there is no more level to explore
+        score = self.score(game, player)
+        next_move = (-1, -1)
+        if depth == 0 or len(game.get_legal_moves()) == 0: 
+            return score, next_move
+
+        # Do an iterative deepening with a bounded depth search 
+        if maximizing_player: 
+            score = -infinity
+            for move in game.get_legal_moves():
+                v = min_value(game.forecast_move(move), depth - 1) 
+                if  v > score: 
+                    next_move = move 
+                    score = v  
+        else: 
+            raise NotImplemented
+
+        return score, next_move   
