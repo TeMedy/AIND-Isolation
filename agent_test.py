@@ -24,6 +24,7 @@ from threading import Thread
 from multiprocessing import TimeoutError
 from queue import Empty as QueueEmptyError
 from importlib import reload
+from patsy.test_highlevel import test_0d_data
 
 WRONG_MOVE = """
 The {} function failed because it returned a non-optimal move at search depth {}.
@@ -228,7 +229,7 @@ class Project1Test(unittest.TestCase):
         return agentUT, board
 
     @timeout(5)
-    @unittest.skip("Skip eval function test.")  # Uncomment this line to skip test
+    # @unittest.skip("Skip eval function test.")  # Uncomment this line to skip test
     def test_heuristic(self):
         """ Test output interface of heuristic score function interface."""
 
@@ -422,8 +423,8 @@ class Project1Test(unittest.TestCase):
             self.assertIn(move, expected_moves[idx // 2], WRONG_MOVE.format(
                 method, test_depth, expected_moves[idx // 2], move))
 
-    @timeout(20)
-    @unittest.skip("Skip alpha-beta test.")  # Uncomment this line to skip test
+    # @timeout(20)
+    # @unittest.skip("Skip alpha-beta test.")  # Uncomment this line to skip test
     def test_alphabeta(self):
         """ Test CustomPlayer.alphabeta
 

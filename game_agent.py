@@ -145,7 +145,6 @@ class CustomPlayer:
                 # search once for the maximum depth of the tree
                 depth = self.search_depth
             while depth <= self.search_depth and move not in TERMINAL_MOVE: 
-                print ('at depth: ' + str(depth))
                 if self.method == 'minimax':
                     _, move = self.minimax(game, depth)
                 #elif self.method == 'alaphbeta': 
@@ -261,43 +260,47 @@ class CustomPlayer:
         tuple(int, int)
             The best move for the current branch; (-1, -1) for no legal moves
         """
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise Timeout()
-
-        player = game.active_player
         
-        def min_value(game, depth):
+        def min_value(game, depth, alpha = -infinity, beta = infinity):
             # depth zero means we are at the leaf
             if depth == 0 or len(game.get_legal_moves()) == 0: 
                 return self.score(game, player)
             v = infinity
             for move in game.get_legal_moves(): 
-                v  = min(v, max_value(game.forecast_move(move), depth - 1))
+                v  = min(v, max_value(game.forecast_move(move), depth - 1), alpha, beta)
+                if v <= alpha: 
+                    break
+                beta = min(beta, v) 
             return v 
 
-        def max_value(game, depth):
+        def max_value(game, depth, alpha = -infinity, beta = infinity):
             # depth zero means we are at the leaf
             if depth == 0 or len(game.get_legal_moves()) == 0: 
                 return self.score(game, player)
             v = -infinity
             for move in game.get_legal_moves(): 
-                v  = max(v, min_value(game.forecast_move(move), depth - 1))
+                v  = max(v, min_value(game.forecast_move(move), depth - 1), alpha, beta)
+                if v >= beta: 
+                    break
+                alpha = max(alpha, v)
             return v
             
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
+        player = game.active_player
+
         # return the current score if there is no more level to explore
-        score = self.score(game, player)
         next_move = (-1, -1)
         if depth == 0 or len(game.get_legal_moves()) == 0: 
+            score = self.score(game, player)
             return score, next_move
 
         # Do an iterative deepening with a bounded depth search 
         if maximizing_player: 
             score = -infinity
             for move in game.get_legal_moves():
-                v = min_value(game.forecast_move(move), depth - 1) 
+                v = min_value(game.forecast_move(move), depth - 1, alpha, beta) 
                 if  v > score: 
                     next_move = move 
                     score = v  
