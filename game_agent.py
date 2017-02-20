@@ -136,6 +136,12 @@ class CustomPlayer:
             # here in order to avoid timeout. The try/except block will
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
+            if self.method == 'minimax':
+                search_alg = self.minimax
+            elif self.method == 'alaphbeta': 
+                search_alg = self.alphabeta
+            else: 
+                raise InvalidArgumentException
             if self.iterative: 
                 # if iterative deepening is activated, it starts from depth zero
                 # and work it's way toward deeper levels of the decision tree
@@ -144,14 +150,9 @@ class CustomPlayer:
                 # if iterative deepening is not activated, it only does the 
                 # search once for the maximum depth of the tree
                 depth = self.search_depth
-            while depth <= self.search_depth and move not in TERMINAL_MOVE: 
-                if self.method == 'minimax':
-                    _, move = self.minimax(game, depth)
-                #elif self.method == 'alaphbeta': 
-                #    _, move = self.alphabeta(game, depth)
-                else: 
-                    raise InvalidArgumentException
-                # go one level deeper in the search tree  
+            while self.iterative or depth <= self.search_depth and move not in TERMINAL_MOVE: 
+                # go one level deeper in the search tree
+                _, move = search_alg(game, depth)  
                 depth += 1 
 
         except Timeout:
@@ -190,39 +191,37 @@ class CustomPlayer:
         
         def min_value(game, depth):
             # depth zero means we are at the leaf
+            next_move = (-1, -1)
             if depth == 0 or len(game.get_legal_moves()) == 0: 
-                return self.score(game, player)
-            v = infinity
+                return self.score(game, player), next_move
+            score = infinity
             for move in game.get_legal_moves(): 
-                v  = min(v, max_value(game.forecast_move(move), depth - 1))
-            return v 
+                v, _ = max_value(game.forecast_move(move), depth - 1)
+                # find the min(score, v) and the corresponding move
+                if score > v: 
+                    score = v 
+                    next_move = move
+            return score, next_move
 
         def max_value(game, depth):
             # depth zero means we are at the leaf
+            next_move = (-1, -1)
             if depth == 0 or len(game.get_legal_moves()) == 0: 
-                return self.score(game, player)
-            v = -infinity
+                return self.score(game, player), next_move
+            score = -infinity
             for move in game.get_legal_moves(): 
-                v  = max(v, min_value(game.forecast_move(move), depth - 1))
-            return v
+                v, _ = min_value(game.forecast_move(move), depth - 1)
+                # find the max(score, v) and the corresponding move
+                if score < v: 
+                    score = v 
+                    next_move = move
+            return score, next_move
             
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
-
-        # return the current score if there is no more level to explore
-        score = self.score(game, player)
-        next_move = (-1, -1)
-        if depth == 0 or len(game.get_legal_moves()) == 0: 
-            return score, next_move
-
-        # Do an iterative deepening with a bounded depth search 
-        if maximizing_player: 
-            score = -infinity
-            for move in game.get_legal_moves():
-                v = min_value(game.forecast_move(move), depth - 1) 
-                if  v > score: 
-                    next_move = move 
-                    score = v  
+        # Do a search with a bounded depth 
+        if maximizing_player:
+            score, next_move = max_value(game, depth) 
         else: 
             raise NotImplemented
 
