@@ -262,48 +262,52 @@ class CustomPlayer:
         """
         
         def min_value(game, depth, alpha = -infinity, beta = infinity):
+            # initialize the next move
+            next_move = (-1, -1)
             # depth zero means we are at the leaf
             if depth == 0 or len(game.get_legal_moves()) == 0: 
-                return self.score(game, player)
-            v = infinity
+                return self.score(game, player), next_move
+            score = infinity
             for move in game.get_legal_moves(): 
-                v  = min(v, max_value(game.forecast_move(move), depth - 1), alpha, beta)
-                if v <= alpha: 
+                v, _  = max_value(game.forecast_move(move), depth - 1, alpha, beta)
+                # compare and find hte maximium score and the corresponding move
+                if score > v: 
+                    score = v 
+                    next_move = move
+                # pruning                  
+                if score <= alpha: 
                     break
-                beta = min(beta, v) 
-            return v 
+                # update the value for alpha
+                beta = min(beta, score) 
+            return score, next_move 
 
         def max_value(game, depth, alpha = -infinity, beta = infinity):
+            # initialize the next move
+            next_move = (-1, -1)
             # depth zero means we are at the leaf
             if depth == 0 or len(game.get_legal_moves()) == 0: 
-                return self.score(game, player)
-            v = -infinity
+                return self.score(game, player), next_move
+            score = -infinity
             for move in game.get_legal_moves(): 
-                v  = max(v, min_value(game.forecast_move(move), depth - 1), alpha, beta)
-                if v >= beta: 
+                v, _  = min_value(game.forecast_move(move), depth - 1, alpha, beta)
+                # compare and find hte maximium score and the corresponding move
+                if score < v: 
+                    score = v 
+                    next_move = move
+                # pruning                  
+                if score >= beta: 
                     break
-                alpha = max(alpha, v)
-            return v
+                # update the value for alpha
+                alpha = max(alpha, score)
+            return score, next_move
             
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
         player = game.active_player
 
-        # return the current score if there is no more level to explore
-        next_move = (-1, -1)
-        if depth == 0 or len(game.get_legal_moves()) == 0: 
-            score = self.score(game, player)
-            return score, next_move
-
-        # Do an iterative deepening with a bounded depth search 
         if maximizing_player: 
-            score = -infinity
-            for move in game.get_legal_moves():
-                v = min_value(game.forecast_move(move), depth - 1, alpha, beta) 
-                if  v > score: 
-                    next_move = move 
-                    score = v  
+            score, next_move = max_value(game, depth, alpha, beta)
         else: 
             raise NotImplemented
 
