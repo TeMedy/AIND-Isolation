@@ -39,6 +39,12 @@ def custom_score(game, player):
 
     # TODO: finish this function!
     #raise NotImplementedError
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
     return float(len(game.get_legal_moves(player)))
 
 
@@ -138,7 +144,7 @@ class CustomPlayer:
             # when the timer gets close to expiring
             if self.method == 'minimax':
                 search_alg = self.minimax
-            elif self.method == 'alaphbeta': 
+            elif self.method == 'alphabeta': 
                 search_alg = self.alphabeta
             else: 
                 raise InvalidArgumentException
@@ -190,6 +196,8 @@ class CustomPlayer:
         player = game.active_player
         
         def min_value(game, depth):
+            if self.time_left() < self.TIMER_THRESHOLD:
+                raise Timeout()
             # depth zero means we are at the leaf
             next_move = (-1, -1)
             if depth == 0 or len(game.get_legal_moves()) == 0: 
@@ -204,6 +212,8 @@ class CustomPlayer:
             return score, next_move
 
         def max_value(game, depth):
+            if self.time_left() < self.TIMER_THRESHOLD:
+                raise Timeout()
             # depth zero means we are at the leaf
             next_move = (-1, -1)
             if depth == 0 or len(game.get_legal_moves()) == 0: 
