@@ -271,6 +271,8 @@ class CustomPlayer:
         """
         
         def min_value(game, depth, alpha = -infinity, beta = infinity):
+            if self.time_left() < self.TIMER_THRESHOLD:
+                raise Timeout()
             # initialize the next move
             next_move = (-1, -1)
             # depth zero means we are at the leaf
@@ -291,6 +293,8 @@ class CustomPlayer:
             return score, next_move 
 
         def max_value(game, depth, alpha = -infinity, beta = infinity):
+            if self.time_left() < self.TIMER_THRESHOLD:
+                raise Timeout()
             # initialize the next move
             next_move = (-1, -1)
             # depth zero means we are at the leaf
