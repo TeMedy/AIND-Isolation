@@ -45,6 +45,39 @@ def custom_score_basic(game, player):
     score = len(own_moves)
     return float(score)
 
+def custom_score_improved(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player. This score function returns the difference 
+    between the number of moves available for self and the opponent player. 
+    A mixing factor is used to compute weighted sum of the two instead of 
+    plain addition.  
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+    mixing_factor = 0.4
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(mixing_factor * own_moves + (1 - mixing_factor) * (-opp_moves))
+
 def custom_score_opponent_moves(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player. This score function only returns the number of 
@@ -76,11 +109,10 @@ def custom_score_opponent_moves(game, player):
     opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
     return float(own_moves - opp_moves)
 
-def custom_score_lookahead_opponent(game, player):
+def custom_score_own_moves(game, player):
     """Calculate the heuristic value of a game state from the point of view
-    of the given player. This score function looks at the number of available
-    moves for its own player subtracted by the average number of moves available
-    for the opponent in the next round.
+    of the given player. This score function only returns the number of 
+    moves available for the player.  
 
     Parameters
     ----------
@@ -104,18 +136,8 @@ def custom_score_lookahead_opponent(game, player):
     if game.is_winner(player):
         return float("inf")
 
-    own_moves = game.get_legal_moves(player)
-    if len(own_moves) == 0: 
-        return float("-inf")
-    
-    opp_moves = 0.0
-    for move in own_moves: 
-        new_game = game.forecast_move(move)
-        opp_moves += len(new_game.get_legal_moves(game.get_opponent(player)))
-    # get the average moves that the opponent have 
-    avg_opp_moves = opp_moves / len(own_moves)
-    return float(len(own_moves) - avg_opp_moves)
-
+    own_moves = len(game.get_legal_moves(player))
+    return float(own_moves)
 
 def custom_score_center_deviation(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -160,6 +182,148 @@ def custom_score_center_deviation(game, player):
     
     return float(score)
 
+def custom_score_lookahead_opponent(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player. This score function looks at the number of available
+    moves for its own player subtracted by the average number of moves available
+    for the opponent in the next round.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = game.get_legal_moves(player)
+    if len(own_moves) == 0: 
+        return float("-inf")
+    
+    opp_moves = 0.0
+    for move in own_moves: 
+        new_game = game.forecast_move(move)
+        opp_moves += len(new_game.get_legal_moves(game.get_opponent(player)))
+    # get the average moves that the opponent have 
+    avg_opp_moves = opp_moves / len(own_moves)
+    return float(len(own_moves) - avg_opp_moves)
+
+def custom_score_lookahead_own(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player. This score function looks ahead one level deeper and
+    returns the number of legal moves at the current step and the average of
+    number of moves available due to each of the moves in previous step.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    # TODO: finish this function!
+    #raise NotImplementedError
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = game.get_legal_moves(player)
+    if len(own_moves) == 0: 
+        return float("-inf")
+    mixing_factor = 0.4
+    lookahead_moves = 0.0
+    for move in own_moves: 
+        lookahead_game = game.forecast_move(move)
+        lookahead_moves += len(lookahead_game.get_legal_moves(player))
+    lookahead_moves /= len(own_moves)   
+    if lookahead_moves == 0: 
+        # loosing game in the future
+        return float("-inf") 
+    
+    score = mixing_factor * len(own_moves) + (1 - mixing_factor) * lookahead_moves
+    return float(score)
+
+def custom_score_lookahead_both(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player. This score function looks ahead one level deeper and
+    returns the number of legal moves at the current step and the average of
+    number of moves available due to each of the moves in previous step. 
+    This look ahead is performed for both players.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    # TODO: finish this function!
+    #raise NotImplementedError
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = game.get_legal_moves(player)
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+
+    mixing_factor = 0.5
+    if len(own_moves) == 0: 
+        return float("-inf")
+    lookahead_moves = 0.0
+    opp_moves_next_level = 0.0
+    for move in own_moves: 
+        lookahead_game = game.forecast_move(move)
+        lookahead_moves += len(lookahead_game.get_legal_moves(player))
+        # opponent moves
+        opp_moves_next_level += len(lookahead_game.get_legal_moves(game.get_opponent(player)))
+    lookahead_moves /= len(own_moves)   
+    # get the average moves that the opponent have 
+    opp_moves_next_level /= len(own_moves)
+
+    if lookahead_moves == 0: 
+        # loosing game in the future
+        #return float("-inf")
+        pass  
+        
+    score =  mixing_factor * (len(own_moves) - opp_moves) + (1 - mixing_factor) * (lookahead_moves - opp_moves_next_level)
+    return float(score)
+
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
@@ -180,10 +344,15 @@ def custom_score(game, player):
         The heuristic value of the current game state to the specified player.
     """
 
-    # return custom_score_basic(game, player)
-    # return custom_score_opponent_moves(game, player)
-    # return custom_score_lookahead_opponent(game, player)
-    return custom_score_center_deviation(game, player)
+    #return custom_score_basic(game, player)
+    #return custom_score_improved(game, player)
+    #return custom_score_opponent_moves(game, player)
+    #return custom_score_own_moves(game, player)
+    #return custom_score_lookahead_opponent(game, player)
+    #return custom_score_center_deviation(game, player)
+    #return custom_score_lookahead_own(game, player)
+    return custom_score_lookahead_both(game, player)
+
 
 
 class CustomPlayer:
