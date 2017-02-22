@@ -7,7 +7,6 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 import random
-from boto.kinesis.exceptions import InvalidArgumentException
 
 infinity = float('inf')
 
@@ -16,6 +15,150 @@ class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
 
+def custom_score_basic(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = game.get_legal_moves(player)
+    score = len(own_moves)
+    return float(score)
+
+def custom_score_opponent_moves(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player. This score function only returns the number of 
+    moves available for opponent player.  
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = 0 # len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(own_moves - opp_moves)
+
+def custom_score_lookahead_opponent(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player. This score function looks at the number of available
+    moves for its own player subtracted by the average number of moves available
+    for the opponent in the next round.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = game.get_legal_moves(player)
+    if len(own_moves) == 0: 
+        return float("-inf")
+    
+    opp_moves = 0.0
+    for move in own_moves: 
+        new_game = game.forecast_move(move)
+        opp_moves += len(new_game.get_legal_moves(game.get_opponent(player)))
+    # get the average moves that the opponent have 
+    avg_opp_moves = opp_moves / len(own_moves)
+    return float(len(own_moves) - avg_opp_moves)
+
+
+def custom_score_center_deviation(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player. This score function discourages the player to go to
+    the boundaries of the board by discounting the distance to centre of the 
+    board from the returned score. 
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    mixing_factor = 0.8
+    board_center = (game.width / 2.0, game.height / 2.0)
+    current_location = game.get_player_location(player)
+    distance_to_center = (current_location[0] - board_center[0]) ** 2 + (current_location[1] - board_center[1]) ** 2
+    distance_to_center_normilized = distance_to_center / ( (board_center[0]) ** 2 + (board_center[1]) ** 2 )
+    #print("distance to center = " + str(-distance_to_center))
+    
+    nrof_own_moves = len(game.get_legal_moves(player))
+    nrof_own_moves_normilized = nrof_own_moves / 8.0 
+    
+    score = mixing_factor * nrof_own_moves_normilized + (1 - mixing_factor) * (- distance_to_center_normilized)
+    #print('score = ' + str(score)) 
+    
+    return float(score)
 
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -37,15 +180,10 @@ def custom_score(game, player):
         The heuristic value of the current game state to the specified player.
     """
 
-    # TODO: finish this function!
-    #raise NotImplementedError
-    if game.is_loser(player):
-        return float("-inf")
-
-    if game.is_winner(player):
-        return float("inf")
-
-    return float(len(game.get_legal_moves(player)))
+    # return custom_score_basic(game, player)
+    # return custom_score_opponent_moves(game, player)
+    # return custom_score_lookahead_opponent(game, player)
+    return custom_score_center_deviation(game, player)
 
 
 class CustomPlayer:
@@ -147,7 +285,7 @@ class CustomPlayer:
             elif self.method == 'alphabeta': 
                 search_alg = self.alphabeta
             else: 
-                raise InvalidArgumentException
+                raise Exception
             if self.iterative: 
                 # if iterative deepening is activated, it starts from depth zero
                 # and work it's way toward deeper levels of the decision tree
@@ -164,7 +302,6 @@ class CustomPlayer:
         except Timeout:
             # Handle any actions required at timeout, if necessary
             pass
-
         # Return the best move from the last completed search iteration
         return move
 

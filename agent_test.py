@@ -536,6 +536,5 @@ class Project1Test(unittest.TestCase):
             self.assertTrue(chosen_move in legal_moves, INVALID_MOVE.format(
                 legal_moves, chosen_move))
 
-
 if __name__ == '__main__':
     unittest.main()
